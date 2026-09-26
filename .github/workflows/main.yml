@@ -1,0 +1,32 @@
+name: Cloud Build HTML5
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Setup Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.4
+      - name: Install Haxe Libraries
+        run: |
+          haxelib setup ~/haxelib
+          haxelib install lime && haxelib install openfl && haxelib install flixel
+          haxelib run lime setup flixel
+          haxelib install flixel-addons && haxelib install flixel-ui && haxelib install tjson
+      - name: Build Web Port
+        run: haxelib run lime build html5
+      - name: Push Build to Release Branch
+        run: |
+          cd export/release/html5/bin
+          git init
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout -b web-deploy
+          git add .
+          git commit -m "Deploy compiled web game"
+          git push --force "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@://github.com{{ github.repository }}.git" web-deploy
